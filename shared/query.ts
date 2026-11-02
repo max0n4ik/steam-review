@@ -1,7 +1,7 @@
 import type { Query } from './types.ts';
 
 export function parseAppId(value: unknown): number {
-  const text = String(value ?? '').trim();
+  const text = typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
   const match = text.match(
     /^https:\/\/store\.steampowered\.com\/app\/(\d+)(?:\/[^?#]*)?(?:[?#].*)?$/i,
   );

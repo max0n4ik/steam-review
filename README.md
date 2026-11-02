@@ -2,13 +2,13 @@
 
 A local-first workbench for exploring public Steam reviews for **any game**. Enter an App ID, choose a date range and a download cap, then inspect publication bursts, playtime, reviewer activity, word patterns, and repeated texts.
 
-Built with **Vite, React, TypeScript, Mantine, Recharts, and a small local Express server**. The interface is in Russian; this guide is in English.
+Built with **Vite+, React, TypeScript, Mantine, Recharts, and a small local Express server**. The interface is in Russian; this guide is in English.
 
 No account, database service, or Steam API key is required for review downloads. Nothing is deployed or uploaded to a hosted analytics service.
 
 ## Quick start
 
-Requirements: **Node.js 22.12+** and npm. Node.js 24 LTS is recommended.
+Requirements: **Node.js 22.18+, 24.11+, or 26+** and npm (the supported ranges are `^22.18.0 || ^24.11.0 || >=26.0.0`). Node.js 24 LTS is recommended.
 
 ```sh
 npm ci
@@ -120,13 +120,32 @@ Do not run multiple server processes against the same `DATA_DIR`.
 ## Development
 
 ```sh
-npm run dev        # Express + Vite middleware, one local process
-npm run typecheck  # TypeScript checks for UI, server, and tests
-npm run format:check # Check source formatting
-npm test           # deterministic tests; no Steam network requests
-npm run build      # typecheck + Vite production assets
-npm start          # serve the built UI and API locally
+npm run dev          # Express + Vite+ core middleware, one local process
+npm run check        # Oxfmt + Oxlint + type-aware TypeScript checks
+npm run lint         # Oxlint, failing on warnings
+npm run lint:fix     # Apply safe lint fixes
+npm run format       # Write Oxfmt formatting
+npm run format:check # Check formatting without changing files
+npm run typecheck    # TypeScript checks via the Vite+ toolchain
+npm test             # Vitest through Vite+; no Steam network requests
+npm run build        # Vite+ checks + production assets
+npm start            # Serve the built UI and API locally
 ```
+
+### Vite+, Oxlint, and Oxfmt
+
+The project pins `vite-plus` and uses its matching `@voidzero-dev/vite-plus-core` alias for the embedded dev server. Vite+ provides Oxlint, Oxfmt, Vitest, and the type-aware checking toolchain; standalone Prettier has been removed. You do not need to install a global CLI.
+
+All shared tool configuration lives in **`vite.config.ts`**:
+
+- **Oxlint:** correctness checks, TypeScript/React/React Hooks/accessibility/import plugins, unused-variable checks (intentional `_` names are allowed), no debugger or `var`, `prefer-const`, smart strict equality, duplicate imports, React keys, and hook dependencies. CI-style scripts reject warnings as well as errors.
+- **Type checking:** both `typeAware` and `typeCheck` are enabled. `npm run check` runs formatting, lint, and types together.
+- **Oxfmt:** two spaces, single quotes, semicolons, trailing commas, 100-column line width, and LF endings. Generated assets, dependencies, local datasets, tool caches, and the generated lockfile are excluded.
+- **Tests:** Node environment, `tests/**/*.test.ts`, using `vite-plus/test`.
+
+The underlying commands are `vp lint`, `vp fmt`, `vp check`, `vp test run`, and `vp build`. With npm, invoke them through the scripts above or `npx vp ...`. For the full local application, use **`npm run dev`** (or `npx vp run dev`): bare `vp dev` only starts Vite's frontend server and does not start this project's Express API.
+
+Tool caches under `.vite-plus/` are ignored by Git. No commit hooks or global environment changes are installed.
 
 Tests cover date boundaries, cursor encoding, missing fields, capped downloads, duplicate pages, pause/resume, restart recovery, damaged-tail recovery, HTTP backoff, rolling windows, sentiment separation, exact matches, and identifier-free exports. A 50,000-record download is also exercised against 500 mocked Steam pages; the suite has 23 tests.
 

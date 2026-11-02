@@ -110,7 +110,7 @@ export class SteamClient implements PageClient {
           ]),
           headers: { Accept: 'application/json' },
         });
-      } catch (error) {
+      } catch (_error) {
         signal?.throwIfAborted();
         if (attempt === 5)
           throw new SteamError(

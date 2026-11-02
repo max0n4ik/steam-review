@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Anchor,
@@ -12,7 +12,6 @@ import {
   Paper,
   Progress,
   SegmentedControl,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -49,7 +48,7 @@ export default function App() {
     [limit, setLimit] = useState<number | string>(1000),
     [period, setPeriod] = useState('all'),
     [dates, setDates] = useState<[string | null, string | null]>([null, null]),
-    [preview, setPreview] = useState<Preview | null>(null),
+    [previewState, setPreview] = useState<(Preview & { formKey: string }) | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [history, setHistory] = useState<Job[]>([]),
@@ -57,20 +56,27 @@ export default function App() {
     [rows, setRows] = useState<Review[]>([]),
     [loadingRows, setLoadingRows] = useState(false),
     [deleteJob, setDeleteJob] = useState<Job | null>(null);
-  const generation = useRef(0),
-    jobRef = useRef<Job | null>(null);
-  jobRef.current = job;
-  async function refreshHistory() {
+  const generation = useRef(0);
+  const formKey = JSON.stringify([appid, limit, period, dates]);
+  const preview = previewState?.formKey === formKey ? previewState : null;
+  const refreshHistory = useCallback(async () => {
     const h = await api<Job[]>('/jobs');
     setHistory(h);
-  }
-  useEffect(() => {
-    void refreshHistory().catch((e) => setError(e.message));
   }, []);
   useEffect(() => {
-    setPreview(null);
-  }, [appid, limit, period, dates]);
-  async function loadRows(target: Job) {
+    let active = true;
+    void api<Job[]>('/jobs')
+      .then((items) => {
+        if (active) setHistory(items);
+      })
+      .catch((e: Error) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const loadRows = useCallback(async (target: Job) => {
     const ticket = ++generation.current;
     setLoadingRows(true);
     try {
@@ -81,7 +87,7 @@ export default function App() {
     } finally {
       if (ticket === generation.current) setLoadingRows(false);
     }
-  }
+  }, []);
   async function openSession(target: Job) {
     setError('');
     setPreview(null);
@@ -96,7 +102,7 @@ export default function App() {
     const timer = setInterval(async () => {
       try {
         const fresh = await api<Job>(`/jobs/${id}`);
-        if (disposed || jobRef.current?.id !== id) return;
+        if (disposed) return;
         setJob(fresh);
         if (fresh.status !== 'running') {
           clearInterval(timer);
@@ -111,7 +117,7 @@ export default function App() {
       disposed = true;
       clearInterval(timer);
     };
-  }, [job?.id, job?.status]);
+  }, [job, loadRows, refreshHistory]);
   function query() {
     return {
       appid: parseAppId(appid),
@@ -125,7 +131,7 @@ export default function App() {
     setBusy(true);
     setError('');
     try {
-      setPreview(await api<Preview>('/preview', 'POST', query()));
+      setPreview({ ...(await api<Preview>('/preview', 'POST', query())), formKey });
     } catch (e) {
       setError((e as Error).message);
     } finally {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Accordion,
   Alert,
@@ -7,7 +7,6 @@ import {
   Button,
   Checkbox,
   Group,
-  NumberInput,
   Pagination,
   Paper,
   SegmentedControl,
@@ -37,7 +36,6 @@ import {
   timeline,
   wordCloud,
   type Analyzed,
-  type Bucket,
   type Sentiment,
 } from '../lib/analysis.ts';
 import { saveJSON } from '../lib/api.ts';
@@ -145,12 +143,12 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
     () => filterReviews(prepared, sentiment, language, customRange),
     [prepared, sentiment, language, customRange],
   );
-  const time = (r: Analyzed) =>
-    timeMode === 'review' ? r.author.playtime_at_review : r.author.playtime_forever;
-  const timelineBins = useMemo(
-    () => timeline(cohort, range, Number(step)),
-    [cohort, range[0], range[1], step],
+  const time = useCallback(
+    (r: Analyzed) =>
+      timeMode === 'review' ? r.author.playtime_at_review : r.author.playtime_forever,
+    [timeMode],
   );
+  const timelineBins = useMemo(() => timeline(cohort, range, Number(step)), [cohort, range, step]);
   const peakWindows = useMemo(() => bursts(cohort, Number(windowSize)), [cohort, windowSize]);
   const cloud = useMemo(
     () => wordCloud(cohort, cloudMode === 'pairs', hideGeneric),
@@ -205,7 +203,7 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               ? (a.author.num_reviews ?? Infinity) - (b.author.num_reviews ?? Infinity)
               : b.timestamp_created - a.timestamp_created,
       );
-  }, [cohort, search, filters, sort, timeMode]);
+  }, [cohort, search, filters, sort, time]);
   const positives = prepared.filter((r) => r.voted_up).length,
     negatives = prepared.length - positives;
   const playtimeBins = histogram(
@@ -277,7 +275,9 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
       identifiersRemoved: exportAnonymous,
       reviews: exportAnonymous
         ? anonymize(selected)
-        : selected.map(({ tokens, normalized, searchText, ...r }) => r),
+        : selected.map(
+            ({ tokens: _tokens, normalized: _normalized, searchText: _searchText, ...r }) => r,
+          ),
     });
   }
   const source = (r: Analyzed) =>

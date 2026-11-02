@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vite-plus/test';
 import assert from 'node:assert/strict';
 import { dateRangeToQuery, parseAppId, validateQuery } from '../shared/query.ts';
 import { decodePage, retryDelay, SteamClient } from '../server/steam.ts';
