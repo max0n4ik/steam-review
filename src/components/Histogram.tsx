@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n.tsx';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Text } from '@mantine/core';
 import type { Bucket } from '../lib/analysis.ts';
@@ -11,14 +12,16 @@ export default function Histogram({
   onSelect?: (bucket: Bucket) => void;
   formatter?: (bucket: Bucket) => string;
 }) {
+  const { t, n } = useI18n();
   if (!data.length)
     return (
       <Text c="dimmed" py="xl">
-        Нет данных для графика.
+        {' '}
+        {t('Нет данных для графика.')}{' '}
       </Text>
     );
   return (
-    <div className="histogram" aria-label="Гистограмма количества отзывов">
+    <div className="histogram" aria-label={t('Гистограмма количества отзывов')}>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 6, left: -18 }}>
           <CartesianGrid vertical={false} stroke="var(--mantine-color-gray-2)" />
@@ -47,7 +50,7 @@ export default function Histogram({
                 <div className="chart-tooltip">
                   <strong>{formatter?.(b) ?? b.label}</strong>
                   <br />
-                  {b.count.toLocaleString('ru-RU')} {onSelect ? '· нажмите, чтобы выбрать' : ''}
+                  {n(b.count)} {onSelect ? t('· нажмите, чтобы выбрать') : ''}
                 </div>
               );
             }}

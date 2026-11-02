@@ -135,8 +135,13 @@ const stop = new Set(
     /\s+/,
   ),
 );
+for (const word of 'el la los las un una unos unas de del al a en y o que es son ser se su sus por para con sin como pero no si ya hay muy mas más este esta esto estos estas lo le les me te mi tu tus yo tú nosotros nos ellos ellas usted ustedes fue era ha han hemos he tengo tiene tener también tambien porque cuando donde desde hasta sobre entre cada ese esa eso mis mucho mucha muchos muchas todo toda todos todas'.split(
+  ' ',
+))
+  stop.add(word);
+
 const generic = new Set(
-  'игра игры игру игре игрой игр играть играл играла играли играешь game games played play playing'.split(
+  'игра игры игру игре игрой игр играть играл играла играли играешь game games played play playing juego juegos jugar jugado jugando'.split(
     ' ',
   ),
 );

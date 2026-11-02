@@ -1,8 +1,10 @@
 # Steam Review Lab
 
+**English** · [Русский](README.ru.md) · [Español](README.es.md)
+
 A local-first workbench for exploring public Steam reviews for **any game**. Enter an App ID, choose a date range and a download cap, then inspect publication bursts, playtime, reviewer activity, word patterns, and repeated texts.
 
-Built with **Vite+, React, TypeScript, Mantine, Recharts, and a small local Express server**. The interface is in Russian; this guide is in English.
+Built with **Vite+, React, TypeScript, Mantine, Recharts, and a small local Express server**. The interface supports **Russian, English, and Spanish**; use the language selector in the header. The choice is saved in your browser and does not reset an active analysis.
 
 No account, database service, or Steam API key is required for review downloads. Nothing is deployed or uploaded to a hosted analytics service.
 
@@ -56,7 +58,7 @@ Histogram and word-cloud clicks filter the review explorer. A selected publicati
 - **Reviewer activity** is `author.num_reviews` at download time, including the review on this game. It is not historical activity at publication time, account age, or proof of a new account.
 - **Missing values** are excluded from medians. They are never converted into zero.
 - **Words** are sequences of letters with optional internal hyphens/apostrophes, after removing Steam BBCode and URLs. Counts are approximate, especially for languages without spaces.
-- **Word-cloud frequency** counts reviews containing a term, not repetitions within one review. Russian/English stop words are removed; no stemming or semantic model is used.
+- **Word-cloud frequency** counts reviews containing a term, not repetitions within one review. Russian/English/Spanish stop words are removed; no stemming or semantic model is used.
 - **Exact matches** ignore BBCode, URLs, punctuation, case, and the Russian `ё/е` distinction. Numbers are retained. These are normalized duplicates, not an AI plagiarism detector.
 - **Time intervals** use `[start, end)`: the start is included, the end is excluded. The calendar translates its inclusive final date to the following midnight.
 
@@ -147,7 +149,7 @@ The underlying commands are `vp lint`, `vp fmt`, `vp check`, `vp test run`, and 
 
 Tool caches under `.vite-plus/` are ignored by Git. No commit hooks or global environment changes are installed.
 
-Tests cover date boundaries, cursor encoding, missing fields, capped downloads, duplicate pages, pause/resume, restart recovery, damaged-tail recovery, HTTP backoff, rolling windows, sentiment separation, exact matches, and identifier-free exports. A 50,000-record download is also exercised against 500 mocked Steam pages; the suite has 23 tests.
+Tests cover date boundaries, cursor encoding, missing fields, capped downloads, duplicate pages, pause/resume, restart recovery, damaged-tail recovery, HTTP backoff, rolling windows, sentiment separation, exact matches, and identifier-free exports. A 50,000-record download is also exercised against 500 mocked Steam pages; the suite has 29 tests.
 
 ```text
 src/
@@ -198,6 +200,16 @@ The UI analyzes up to 50,000 reviews in browser memory, computes exact duplicate
 - **Port already in use:** set another `PORT` in `.env` and restart.
 - **The browser cannot connect:** keep `npm run dev` or `npm start` running and use the URL printed by the server.
 - **Changes after a restart:** active sessions become paused; completed pages remain on disk. Reopen and resume them.
+
+## Localization
+
+Interface language is independent of review-language filtering. Original reviews and Steam game names are never machine-translated. Numbers, dates, calendars, accessibility labels, download statuses, and known server errors follow the selected language; all time boundaries remain UTC. The first visit uses the browser's preferred supported language, falling back to English. A saved selection takes precedence.
+
+Translations use stable source phrases in `shared/messages.ts`; `shared/i18n.ts` provides pure formatting and translation helpers, and `src/i18n.tsx` provides the React context and localized Mantine calendar. Add translations and update the coverage tests when changing interface text. Unknown external error messages are displayed unchanged rather than mistranslated. JSON export field names remain stable for programmatic use.
+
+## Acknowledgment
+
+Developed with assistance from [OpenAI Codex](https://openai.com/codex/) for implementation, documentation, and automated checks.
 
 ## License
 

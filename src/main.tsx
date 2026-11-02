@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MantineProvider, createTheme } from '@mantine/core';
-import { DatesProvider } from '@mantine/dates';
-import 'dayjs/locale/ru';
+import { I18nProvider } from './i18n.tsx';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import './style.css';
@@ -21,9 +20,9 @@ const theme = createTheme({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <DatesProvider settings={{ locale: 'ru', firstDayOfWeek: 1, weekendDays: [0, 6] }}>
+      <I18nProvider>
         <App />
-      </DatesProvider>
+      </I18nProvider>
     </MantineProvider>
   </React.StrictMode>,
 );

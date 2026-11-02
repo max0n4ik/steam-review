@@ -1,3 +1,4 @@
+import { useI18n } from './i18n.tsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -9,6 +10,7 @@ import {
   Loader,
   Modal,
   NumberInput,
+  NativeSelect,
   Paper,
   Progress,
   SegmentedControl,
@@ -34,8 +36,6 @@ import { dateRangeToQuery, parseAppId } from '../shared/query.ts';
 import { api } from './lib/api.ts';
 const Dashboard = lazy(() => import('./components/Dashboard.tsx'));
 
-const utcDay = (t: number) => new Date(t * 1000).toLocaleDateString('ru-RU', { timeZone: 'UTC' });
-
 const statusLabel: Record<Job['status'], string> = {
   running: 'Загрузка',
   paused: 'Остановлено',
@@ -44,6 +44,7 @@ const statusLabel: Record<Job['status'], string> = {
   error: 'Прервано с ошибкой',
 };
 export default function App() {
+  const { t, locale, utcDay, language, setLanguage, calendarLabels, n, numberSymbols } = useI18n();
   const [appid, setAppid] = useState(''),
     [limit, setLimit] = useState<number | string>(1000),
     [period, setPeriod] = useState('all'),
@@ -200,24 +201,43 @@ export default function App() {
             LOCAL
           </Badge>
         </Group>
-        <Text size="xs" c="dimmed">
-          Отзывы, время и повторяющиеся тексты
-        </Text>
+        <Group gap="md">
+          <Text size="xs" c="dimmed">
+            {t('Отзывы, время и повторяющиеся тексты')}
+          </Text>
+          <NativeSelect
+            aria-label={t('Язык интерфейса')}
+            value={language}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              if (value === 'ru' || value === 'en' || value === 'es') setLanguage(value);
+            }}
+            data={[
+              { value: 'ru', label: 'Русский' },
+              { value: 'en', label: 'English' },
+              { value: 'es', label: 'Español' },
+            ]}
+            size="xs"
+            w={130}
+          />
+        </Group>
       </header>
       <div className="workspace">
         <aside className="sidebar">
           <Stack gap="lg">
             <div>
               <Text fw={600} size="sm">
-                Новая выборка
+                {' '}
+                {t('Новая выборка')}{' '}
               </Text>
               <Text size="xs" c="dimmed" mt={4}>
-                Выберите игру и объём до загрузки.
+                {' '}
+                {t('Выберите игру и объём до загрузки.')}{' '}
               </Text>
             </div>
             <TextInput
-              label="App ID или ссылка на игру"
-              placeholder="Например, 440"
+              label={t('App ID или ссылка на игру')}
+              placeholder={t('Например, 440')}
               value={appid}
               onChange={(e) => setAppid(e.currentTarget.value)}
               disabled={busy}
@@ -225,54 +245,60 @@ export default function App() {
             />
             <div>
               <Text component="label" size="sm" fw={500} mb={7}>
-                Максимум отзывов
+                {' '}
+                {t('Максимум отзывов')}{' '}
               </Text>
               <SegmentedControl
                 fullWidth
                 value={String([1000, 10000, 50000].includes(Number(limit)) ? limit : 'custom')}
                 onChange={(v) => setLimit(v === 'custom' ? 500 : Number(v))}
                 data={[
-                  { label: '1 000', value: '1000' },
-                  { label: '10 000', value: '10000' },
-                  { label: '50 000', value: '50000' },
-                  { label: 'Другое', value: 'custom' },
+                  { label: n(1000), value: '1000' },
+                  { label: n(10000), value: '10000' },
+                  { label: n(50000), value: '50000' },
+                  { label: t('Другое'), value: 'custom' },
                 ]}
                 size="xs"
               />
               <NumberInput
-                aria-label="Точный лимит отзывов"
+                aria-label={t('Точный лимит отзывов')}
                 value={limit}
                 onChange={setLimit}
                 min={1}
                 max={50000}
                 allowDecimal={false}
-                thousandSeparator=" "
+                thousandSeparator={numberSymbols.group}
+                decimalSeparator={numberSymbols.decimal}
                 mt="xs"
               />
               <Text size="xs" c="dimmed" mt={5}>
-                Если отзывов больше, загружаются самые новые.
+                {' '}
+                {t('Если отзывов больше, загружаются самые новые.')}{' '}
               </Text>
             </div>
             <div>
               <Text size="sm" fw={500} mb={7}>
-                Период публикации
+                {' '}
+                {t('Период публикации')}{' '}
               </Text>
               <SegmentedControl
                 fullWidth
                 value={period}
                 onChange={setPeriod}
                 data={[
-                  { label: 'Всё время', value: 'all' },
-                  { label: 'Выбрать даты', value: 'range' },
+                  { label: t('Всё время'), value: 'all' },
+                  { label: t('Выбрать даты'), value: 'range' },
                 ]}
                 size="xs"
               />
               {period === 'range' && (
                 <Stack gap="xs" mt="sm">
                   <DatePickerInput
+                    ariaLabels={calendarLabels}
+                    clearButtonProps={{ 'aria-label': t('Очистить') }}
                     type="range"
-                    label="Диапазон дат · UTC"
-                    placeholder="Начальная и конечная даты"
+                    label={t('Диапазон дат · UTC')}
+                    placeholder={t('Начальная и конечная даты')}
                     value={dates}
                     onChange={setDates}
                     valueFormat="DD MMM YYYY"
@@ -292,7 +318,8 @@ export default function App() {
                         ])
                       }
                     >
-                      30 дней
+                      {' '}
+                      {t('30 дней')}{' '}
                     </Button>
                     <Button
                       size="compact-xs"
@@ -304,7 +331,8 @@ export default function App() {
                         ])
                       }
                     >
-                      2 месяца
+                      {' '}
+                      {t('2 месяца')}{' '}
                     </Button>
                   </Group>
                 </Stack>
@@ -317,7 +345,8 @@ export default function App() {
               loading={busy}
               disabled={!appid.trim() || job?.status === 'running'}
             >
-              Проверить объём
+              {' '}
+              {t('Проверить объём')}{' '}
             </Button>
             {preview && (
               <Paper p="sm" bg="gray.0">
@@ -325,22 +354,29 @@ export default function App() {
                   {preview.game.name}
                 </Text>
                 <Text size="sm" mt={6}>
-                  Подходит: {preview.matching?.toLocaleString('ru-RU') ?? 'количество неизвестно'}
+                  {' '}
+                  {t('Подходит:')}{' '}
+                  {preview.matching?.toLocaleString(locale) ?? t('количество неизвестно')}
                 </Text>
                 <Text size="xs" c="dimmed" mt={4}>
-                  До{' '}
+                  {' '}
+                  {t('До')}{' '}
                   {Math.min(
                     preview.query.limit,
                     preview.matching ?? preview.query.limit,
-                  ).toLocaleString('ru-RU')}{' '}
-                  отзывов · примерно {preview.estimatedRequests} запросов
+                  ).toLocaleString(locale)}{' '}
+                  {t('отзывов · примерно')} {preview.estimatedRequests} {t('запросов')}{' '}
                   {preview.estimatedRequests > 0
-                    ? ` · от ${Math.max(1, Math.ceil((preview.estimatedRequests * 1.5) / 60))} мин`
+                    ? t(' · от {0} мин', [
+                        Math.max(1, Math.ceil((preview.estimatedRequests * 1.5) / 60)),
+                      ])
                     : ''}
                 </Text>
                 <Text size="xs" c="dimmed" mt={5}>
-                  Оценка при стандартной паузе 1,5 с. Ответы Steam и ограничения могут увеличить
-                  время.
+                  {' '}
+                  {t(
+                    'Оценка при стандартной паузе 1,5 с. Ответы Steam и ограничения могут увеличить время.',
+                  )}{' '}
                 </Text>
               </Paper>
             )}
@@ -350,19 +386,24 @@ export default function App() {
               loading={busy}
               disabled={!appid.trim() || job?.status === 'running'}
             >
-              Загрузить отзывы
+              {' '}
+              {t('Загрузить отзывы')}{' '}
             </Button>
             <Text size="xs" c="dimmed">
-              Все языки, обе оценки и off-topic отзывы. Разделить выборку можно после загрузки.
-              API-ключ не обязателен.
+              {' '}
+              {t(
+                'Все языки, обе оценки и off-topic отзывы. Разделить выборку можно после загрузки. API-ключ не обязателен.',
+              )}{' '}
             </Text>
             <Divider />
             <Group justify="space-between">
               <Text size="xs" fw={600} tt="uppercase" c="dimmed">
-                Локальные сессии
+                {' '}
+                {t('Локальные сессии')}{' '}
               </Text>
               <Button variant="subtle" size="compact-xs" onClick={() => void refreshHistory()}>
-                Обновить
+                {' '}
+                {t('Обновить')}{' '}
               </Button>
             </Group>
             {history.length ? (
@@ -373,14 +414,14 @@ export default function App() {
                       {h.game.name}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {h.count.toLocaleString('ru-RU')} · {statusLabel[h.status]}
+                      {h.count.toLocaleString(locale)} · {t(statusLabel[h.status])}
                     </Text>
                   </button>
                   <Button
                     variant="subtle"
                     color="gray"
                     size="compact-xs"
-                    aria-label={`Удалить сессию ${h.game.name}`}
+                    aria-label={t('Удалить сессию {0}', [h.game.name])}
                     onClick={() => setDeleteJob(h)}
                   >
                     <IconTrash size={15} />
@@ -389,7 +430,8 @@ export default function App() {
               ))
             ) : (
               <Text size="xs" c="dimmed">
-                Пока нет сохранённых загрузок.
+                {' '}
+                {t('Пока нет сохранённых загрузок.')}{' '}
               </Text>
             )}
           </Stack>
@@ -399,11 +441,12 @@ export default function App() {
             {error && (
               <Alert
                 color="red"
-                title="Не удалось выполнить действие"
+                title={t('Не удалось выполнить действие')}
                 withCloseButton
+                closeButtonLabel={t('Закрыть')}
                 onClose={() => setError('')}
               >
-                {error}
+                {t(error)}
               </Alert>
             )}
             {job && (
@@ -424,15 +467,15 @@ export default function App() {
                         }
                         variant="light"
                       >
-                        {statusLabel[job.status]}
+                        {t(statusLabel[job.status])}
                       </Badge>
                     </Group>
                     <Text size="xs" c="dimmed" mt={5}>
                       App {job.query.appid} ·{' '}
                       {job.query.start !== null
                         ? `${utcDay(job.query.start)} — ${utcDay(job.query.end! - 1)} UTC`
-                        : 'Всё время'}{' '}
-                      · лимит {job.query.limit.toLocaleString('ru-RU')}
+                        : t('Всё время')}{' '}
+                      {t('· лимит')} {job.query.limit.toLocaleString(locale)}
                     </Text>
                   </div>
                   <Group gap="xs">
@@ -444,7 +487,8 @@ export default function App() {
                         onClick={() => void action('pause')}
                         loading={busy}
                       >
-                        Остановить
+                        {' '}
+                        {t('Остановить')}{' '}
                       </Button>
                     ) : (
                       ['paused', 'error'].includes(job.status) && (
@@ -455,7 +499,8 @@ export default function App() {
                           onClick={() => void action('resume')}
                           loading={busy}
                         >
-                          Продолжить
+                          {' '}
+                          {t('Продолжить')}{' '}
                         </Button>
                       )
                     )}
@@ -466,7 +511,8 @@ export default function App() {
                         onClick={() => void loadRows(job)}
                         loading={loadingRows}
                       >
-                        Посмотреть загруженное
+                        {' '}
+                        {t('Посмотреть загруженное')}{' '}
                       </Button>
                     )}
                   </Group>
@@ -474,20 +520,22 @@ export default function App() {
                 <Progress value={progress} mt="md" size="sm" animated={job.status === 'running'} />
                 <Group justify="space-between" mt={8}>
                   <Text size="xs">
-                    {job.count.toLocaleString('ru-RU')} / {target.toLocaleString('ru-RU')} ·{' '}
-                    страниц: {job.pages}
+                    {job.count.toLocaleString(locale)} / {target.toLocaleString(locale)} ·{' '}
+                    {t('страниц:')} {job.pages}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {job.message}
+                    {t(job.message)}
                     {job.retryAt
-                      ? ` Повтор после ${new Date(job.retryAt).toLocaleTimeString('ru-RU')}.`
+                      ? t(' Повтор после {0}.', [new Date(job.retryAt).toLocaleTimeString(locale)])
                       : ''}
                   </Text>
                 </Group>
                 {job.status !== 'complete' && (
                   <Text size="xs" c="dimmed" mt={8}>
-                    Частичная выборка. Проценты и графики относятся только к загруженным отзывам, а
-                    не ко всем отзывам игры.
+                    {' '}
+                    {t(
+                      'Частичная выборка. Проценты и графики относятся только к загруженным отзывам, а не ко всем отзывам игры.',
+                    )}{' '}
                   </Text>
                 )}
               </Paper>
@@ -496,7 +544,8 @@ export default function App() {
               <Group>
                 <Loader size="xs" />
                 <Text size="sm" c="dimmed">
-                  Подготовка данных…
+                  {' '}
+                  {t('Подготовка данных…')}{' '}
                 </Text>
               </Group>
             )}
@@ -509,38 +558,57 @@ export default function App() {
                 <Paper className="welcome" p="xl">
                   <IconDatabase size={35} stroke={1.3} />
                   <Title order={2} mt="md">
-                    Начните с игры
+                    {' '}
+                    {t('Начните с игры')}{' '}
                   </Title>
                   <Text c="dimmed" maw={480} mx="auto" mt="sm">
-                    Введите App ID, ограничьте количество отзывов и выберите период. Здесь появятся
-                    графики публикаций, время в игре и повторяющиеся тексты.
+                    {' '}
+                    {t(
+                      'Введите App ID, ограничьте количество отзывов и выберите период. Здесь появятся графики публикаций, время в игре и повторяющиеся тексты.',
+                    )}{' '}
                   </Text>
                   <Divider my="xl" />
                   <Group justify="center" gap="xl">
                     <Text size="xs" c="dimmed">
-                      Без регистрации
+                      {' '}
+                      {t('Без регистрации')}{' '}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      Данные на вашем компьютере
+                      {' '}
+                      {t('Данные на вашем компьютере')}{' '}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      Остановка и продолжение
+                      {' '}
+                      {t('Остановка и продолжение')}{' '}
                     </Text>
                   </Group>
                 </Paper>
               )
             )}
             <Text size="xs" c="dimmed">
-              Steam Review Lab не связан с Valve. Источник:{' '}
+              {' '}
+              {t('Steam Review Lab не связан с Valve. Источник:')}{' '}
               <Anchor
                 size="xs"
                 href="https://partner.steamgames.com/doc/webapi/IUserReviewsService#GetAppReviews"
                 target="_blank"
               >
                 Steam GetAppReviews API
+              </Anchor>{' '}
+              {t(
+                '. Признаки в данных помогают исследовать гипотезы и не являются доказательством накрутки.',
+              )}{' '}
+            </Text>
+            <Text size="xs" c="dimmed">
+              <Anchor
+                size="xs"
+                c="dimmed"
+                href="https://openai.com/codex/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Создано с помощью Codex')}
               </Anchor>
-              . Признаки в данных помогают исследовать гипотезы и не являются доказательством
-              накрутки.
             </Text>
           </Stack>
         </main>
@@ -548,19 +616,24 @@ export default function App() {
       <Modal
         opened={!!deleteJob}
         onClose={() => setDeleteJob(null)}
-        title="Удалить локальную сессию?"
+        title={t('Удалить локальную сессию?')}
         centered
+        closeButtonProps={{ 'aria-label': t('Закрыть') }}
       >
         <Text size="sm">
-          Отзывы и сохранённый прогресс этой сессии будут удалены с компьютера. Исходные отзывы в
-          Steam останутся.
+          {' '}
+          {t(
+            'Отзывы и сохранённый прогресс этой сессии будут удалены с компьютера. Исходные отзывы в Steam останутся.',
+          )}{' '}
         </Text>
         <Group justify="end" mt="lg">
           <Button variant="default" onClick={() => setDeleteJob(null)}>
-            Отмена
+            {' '}
+            {t('Отмена')}{' '}
           </Button>
           <Button color="red" onClick={() => void remove()} loading={busy}>
-            Удалить сессию
+            {' '}
+            {t('Удалить сессию')}{' '}
           </Button>
         </Group>
       </Modal>

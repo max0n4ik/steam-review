@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n.tsx';
 import { useCallback, useMemo, useState } from 'react';
 import {
   Accordion,
@@ -41,18 +42,6 @@ import {
 import { saveJSON } from '../lib/api.ts';
 import Histogram from './Histogram.tsx';
 
-const n = (v: number | null | undefined) =>
-  v == null ? '—' : v.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
-const fmt = (t: number) =>
-  new Date(t * 1000).toLocaleString('ru-RU', {
-    timeZone: 'UTC',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 const inputDate = (t: number) => new Date(t * 1000).toISOString().slice(0, 19).replace('T', ' ');
 const parseDate = (s: string | null) => (s ? Date.parse(s.replace(' ', 'T') + 'Z') / 1000 : NaN);
 const link = (r: Review, appid: number) =>
@@ -103,6 +92,7 @@ function Metric({ label, value, note }: { label: string; value: string; note: st
   );
 }
 export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
+  const { t, n, fmt, languageName, calendarLabels, pageItemProps, pageControlProps } = useI18n();
   const prepared = useMemo(() => prepare(rows), [rows]);
   const [sentiment, setSentiment] = useState<Sentiment>('positive'),
     [language, setLanguage] = useState('all'),
@@ -173,10 +163,10 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
   const aliases = useMemo(() => {
     const ids = new Map<string, string>();
     prepared.forEach((r) => {
-      if (!ids.has(r.author.steamid)) ids.set(r.author.steamid, `Автор ${ids.size + 1}`);
+      if (!ids.has(r.author.steamid)) ids.set(r.author.steamid, t('Автор {0}', [ids.size + 1]));
     });
     return ids;
-  }, [prepared]);
+  }, [prepared, t]);
   const selected = useMemo(() => {
     const q = normalize(search);
     return cohort
@@ -293,7 +283,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
       <Group justify="space-between" align="end">
         <div>
           <Text size="xs" c="dimmed" mb={7}>
-            Загруженный снимок: {n(prepared.length)} отзывов
+            {' '}
+            {t('Загруженный снимок:')} {n(prepared.length)} {t('отзывов')}{' '}
           </Text>
           <SegmentedControl
             value={sentiment}
@@ -303,15 +294,15 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               setPage(1);
             }}
             data={[
-              { label: `Положительные · ${n(positives)}`, value: 'positive' },
-              { label: `Отрицательные · ${n(negatives)}`, value: 'negative' },
-              { label: 'Все', value: 'all' },
+              { label: t('Положительные · {0}', [n(positives)]), value: 'positive' },
+              { label: t('Отрицательные · {0}', [n(negatives)]), value: 'negative' },
+              { label: t('Все'), value: 'all' },
             ]}
           />
         </div>
         <Select
-          label="Язык отзыва"
-          aria-label="Язык отзыва"
+          label={t('Язык отзыва')}
+          aria-label={t('Язык отзыва')}
           value={language}
           onChange={(v) => {
             setLanguage(v ?? 'all');
@@ -319,8 +310,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
             setPage(1);
           }}
           data={[
-            { value: 'all', label: 'Все языки' },
-            ...languages.map((l) => ({ value: l, label: l })),
+            { value: 'all', label: t('Все языки') },
+            ...languages.map((l) => ({ value: l, label: languageName(l) })),
           ]}
           searchable
           w={180}
@@ -330,49 +321,56 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
         <Alert color="gray">
           <Group justify="space-between">
             <Text size="xs">
-              Период анализа: {fmt(range[0])} — {fmt(range[1])} UTC (конец не включён)
+              {' '}
+              {t('Период анализа:')} {fmt(range[0])} — {fmt(range[1])}{' '}
+              {t('UTC (конец не включён)')}{' '}
             </Text>
             <Button size="compact-xs" variant="subtle" onClick={resetRange}>
-              Весь загруженный период
+              {' '}
+              {t('Весь загруженный период')}{' '}
             </Button>
           </Group>
         </Alert>
       )}
       <SimpleGrid cols={{ base: 2, lg: 4 }}>
         <Metric
-          label="Отзывов в выборке"
+          label={t('Отзывов в выборке')}
           value={n(cohort.length)}
-          note={`${n(authorCount)} уникальных авторов`}
+          note={t('{0} уникальных авторов', [n(authorCount)])}
         />
         <Metric
-          label="Время при отзыве · медиана"
-          value={`${n(median(cohort.map((r) => r.author.playtime_at_review)))} мин`}
-          note={`${n(cohort.filter((r) => r.author.playtime_at_review === undefined).length)} без данных о времени`}
+          label={t('Время при отзыве · медиана')}
+          value={t('{0} мин', [n(median(cohort.map((r) => r.author.playtime_at_review)))])}
+          note={t('{0} без данных о времени', [
+            n(cohort.filter((r) => r.author.playtime_at_review === undefined).length),
+          ])}
         />
         <Metric
-          label="Длина текста · медиана"
-          value={`${n(median(cohort.map((r) => r.tokens.length)))} слов`}
-          note="Без BBCode и ссылок"
+          label={t('Длина текста · медиана')}
+          value={t('{0} слов', [n(median(cohort.map((r) => r.tokens.length)))])}
+          note={t('Без BBCode и ссылок')}
         />
         <Metric
-          label="Отзывов у автора · медиана"
+          label={t('Отзывов у автора · медиана')}
           value={n(median(cohort.map((r) => r.author.num_reviews)))}
-          note="Публичные отзывы сейчас, включая этот"
+          note={t('Публичные отзывы сейчас, включая этот')}
         />
       </SimpleGrid>
       <Tabs value={tab} onChange={setTab} keepMounted={false}>
         <Tabs.List>
-          <Tabs.Tab value="overview">Обзор</Tabs.Tab>
-          <Tabs.Tab value="timeline">Публикации</Tabs.Tab>
-          <Tabs.Tab value="duplicates">Совпадения</Tabs.Tab>
-          <Tabs.Tab value="authors">Опыт авторов</Tabs.Tab>
-          <Tabs.Tab value="reviews">Отзывы</Tabs.Tab>
+          <Tabs.Tab value="overview">{t('Обзор')}</Tabs.Tab>
+          <Tabs.Tab value="timeline">{t('Публикации')}</Tabs.Tab>
+          <Tabs.Tab value="duplicates">{t('Совпадения')}</Tabs.Tab>
+          <Tabs.Tab value="authors">{t('Опыт авторов')}</Tabs.Tab>
+          <Tabs.Tab value="reviews">{t('Отзывы')}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="overview" pt="lg">
           <Stack gap="lg">
             <Panel
-              title="Время в игре"
-              description="Каждый столбец — количество отзывов. Нажмите его, чтобы открыть тексты из интервала."
+              title={t('Время в игре')}
+              description={t(
+                'Каждый столбец — количество отзывов. Нажмите его, чтобы открыть тексты из интервала.',
+              )}
             >
               <Group justify="space-between" mb="md">
                 <SegmentedControl
@@ -383,12 +381,12 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   }}
                   size="xs"
                   data={[
-                    { value: 'review', label: 'При отзыве' },
-                    { value: 'total', label: 'Всего сейчас' },
+                    { value: 'review', label: t('При отзыве') },
+                    { value: 'total', label: t('Всего сейчас') },
                   ]}
                 />
                 <Select
-                  label="Шаг, минуты"
+                  label={t('Шаг, минуты')}
                   value={timeStep}
                   onChange={(v) => setTimeStep(v ?? '15')}
                   data={['15', '30', '60']}
@@ -398,19 +396,25 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               </Group>
               <Histogram data={playtimeBins} onSelect={(b) => focus({ time: [b.start, b.end] })} />
               <Text size="xs" c="dimmed">
-                Интервалы включают нижнюю границу и не включают верхнюю. Последний столбец без
-                верхней границы. Малое время игры само по себе не доказывает накрутку.
+                {' '}
+                {t(
+                  'Интервалы включают нижнюю границу и не включают верхнюю. Последний столбец без верхней границы. Малое время игры само по себе не доказывает накрутку.',
+                )}{' '}
               </Text>
             </Panel>
             <Panel
-              title="Длина отзывов"
-              description="Количество слов в сообщении. Нажмите столбец для просмотра соответствующих отзывов."
+              title={t('Длина отзывов')}
+              description={t(
+                'Количество слов в сообщении. Нажмите столбец для просмотра соответствующих отзывов.',
+              )}
             >
               <Histogram data={lengthBins} onSelect={(b) => focus({ length: [b.start, b.end] })} />
             </Panel>
             <Panel
-              title="Повторяющиеся слова"
-              description="Размер слова соответствует числу отзывов, где оно встретилось хотя бы один раз. Нажмите для просмотра текстов."
+              title={t('Повторяющиеся слова')}
+              description={t(
+                'Размер слова соответствует числу отзывов, где оно встретилось хотя бы один раз. Нажмите для просмотра текстов.',
+              )}
             >
               <Group justify="space-between">
                 <SegmentedControl
@@ -418,13 +422,13 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   onChange={setCloudMode}
                   size="xs"
                   data={[
-                    { value: 'words', label: 'Слова' },
-                    { value: 'pairs', label: 'Пары слов' },
+                    { value: 'words', label: t('Слова') },
+                    { value: 'pairs', label: t('Пары слов') },
                   ]}
                 />
                 <Checkbox
                   size="xs"
-                  label="Убрать «игра / game»"
+                  label={t('Убрать «игра / game / juego»')}
                   checked={hideGeneric}
                   onChange={(e) => setHideGeneric(e.currentTarget.checked)}
                 />
@@ -434,7 +438,7 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   cloud.map(({ word, count }) => (
                     <button
                       key={word}
-                      title={`${word}: ${count} отзывов`}
+                      title={t('{0}: {1} отзывов', [word, count])}
                       style={{
                         fontSize: `${13 + 26 * Math.sqrt(count / (cloud[0]?.count || 1))}px`,
                       }}
@@ -445,13 +449,16 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   ))
                 ) : (
                   <Text size="sm" c="dimmed">
-                    Недостаточно слов для облака.
+                    {' '}
+                    {t('Недостаточно слов для облака.')}{' '}
                   </Text>
                 )}
               </div>
               <Text size="xs" c="dimmed">
-                Удаляются служебные слова русского и английского языка. Словоформы считаются
-                отдельно. Облако не определяет смысл или достоверность отзывов.
+                {' '}
+                {t(
+                  'Удаляются служебные слова русского, английского и испанского языка. Словоформы считаются отдельно. Облако не определяет смысл или достоверность отзывов.',
+                )}{' '}
               </Text>
             </Panel>
           </Stack>
@@ -459,12 +466,16 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
         <Tabs.Panel value="timeline" pt="lg">
           <Stack gap="lg">
             <Panel
-              title="Когда публиковали отзывы"
-              description="Все даты и время здесь в UTC. Конец интервала не включён. Нажмите день → часы, час → минуты."
+              title={t('Когда публиковали отзывы')}
+              description={t(
+                'Все даты и время здесь в UTC. Конец интервала не включён. Нажмите день → часы, час → минуты.',
+              )}
             >
               <Group align="end" grow>
                 <DateTimePicker
-                  label="С"
+                  ariaLabels={calendarLabels}
+                  submitButtonProps={{ 'aria-label': t('Применить') }}
+                  label={t('С')}
                   placeholder={inputDate(range[0])}
                   value={start}
                   onChange={setStart}
@@ -472,7 +483,9 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   valueFormat="DD MMM YYYY HH:mm:ss"
                 />
                 <DateTimePicker
-                  label="До, не включая"
+                  ariaLabels={calendarLabels}
+                  submitButtonProps={{ 'aria-label': t('Применить') }}
+                  label={t('До, не включая')}
                   placeholder={inputDate(range[1])}
                   value={end}
                   onChange={setEnd}
@@ -489,29 +502,31 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                       setRange(start ? parseDate(start) : range[0], end ? parseDate(end) : range[1])
                     }
                   >
-                    Применить
+                    {' '}
+                    {t('Применить')}{' '}
                   </Button>
                   <Button size="xs" variant="subtle" onClick={resetRange}>
-                    Весь период
+                    {' '}
+                    {t('Весь период')}{' '}
                   </Button>
                 </Group>
                 <Select
-                  label="Шаг"
+                  label={t('Шаг')}
                   value={step}
                   onChange={(v) => setStep(v ?? '86400')}
                   data={[
-                    { value: '86400', label: 'День' },
-                    { value: '3600', label: 'Час' },
-                    { value: '900', label: '15 минут' },
-                    { value: '300', label: '5 минут' },
-                    { value: '60', label: 'Минута' },
+                    { value: '86400', label: t('День') },
+                    { value: '3600', label: t('Час') },
+                    { value: '900', label: t('15 минут') },
+                    { value: '300', label: t('5 минут') },
+                    { value: '60', label: t('Минута') },
                   ]}
                   w={140}
                 />
               </Group>
               {rangeError && (
                 <Text size="xs" c="red" mt="xs">
-                  {rangeError}
+                  {t(rangeError)}
                 </Text>
               )}
               {timelineBins ? (
@@ -525,24 +540,28 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                 />
               ) : (
                 <Alert color="gray" mt="md">
-                  Для такого шага слишком широкий период. Сначала выберите день или откройте серию
-                  из таблицы ниже. График ограничен 2 000 столбцами.
+                  {' '}
+                  {t(
+                    'Для такого шага слишком широкий период. Сначала выберите день или откройте серию из таблицы ниже. График ограничен 2 000 столбцами.',
+                  )}{' '}
                 </Alert>
               )}
             </Panel>
             <Panel
-              title="Плотные серии публикаций"
-              description="Скользящее окно начинается с реального отзыва, чтобы не потерять серии на границе часа. До 10 наиболее плотных непересекающихся окон."
+              title={t('Плотные серии публикаций')}
+              description={t(
+                'Скользящее окно начинается с реального отзыва, чтобы не потерять серии на границе часа. До 10 наиболее плотных непересекающихся окон.',
+              )}
             >
               <Select
-                label="Размер окна"
+                label={t('Размер окна')}
                 value={windowSize}
                 onChange={(v) => setWindowSize(v ?? '300')}
                 data={[
-                  { value: '60', label: '1 минута' },
-                  { value: '300', label: '5 минут' },
-                  { value: '900', label: '15 минут' },
-                  { value: '3600', label: '1 час' },
+                  { value: '60', label: t('1 минута') },
+                  { value: '300', label: t('5 минут') },
+                  { value: '900', label: t('15 минут') },
+                  { value: '3600', label: t('1 час') },
                 ]}
                 w={150}
                 mb="md"
@@ -551,9 +570,9 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                 <Table highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
-                      <Table.Th>Начало · UTC</Table.Th>
-                      <Table.Th>Конец · UTC</Table.Th>
-                      <Table.Th>Отзывов</Table.Th>
+                      <Table.Th>{t('Начало · UTC')}</Table.Th>
+                      <Table.Th>{t('Конец · UTC')}</Table.Th>
+                      <Table.Th>{t('Отзывов')}</Table.Th>
                       <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
@@ -569,7 +588,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                             variant="subtle"
                             onClick={() => setRange(b.start, Math.min(b.end, range[1]), 60)}
                           >
-                            Исследовать
+                            {' '}
+                            {t('Исследовать')}{' '}
                           </Button>
                         </Table.Td>
                       </Table.Tr>
@@ -582,38 +602,40 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
         </Tabs.Panel>
         <Tabs.Panel value="duplicates" pt="lg">
           <Panel
-            title="Точные совпадения"
-            description="Сравниваются тексты после удаления BBCode, ссылок, пунктуации и приведения регистра. «Ё/е» объединены, числа сохранены. Мемы и цитаты могут совпадать естественно."
+            title={t('Точные совпадения')}
+            description={t(
+              'Сравниваются тексты после удаления BBCode, ссылок, пунктуации и приведения регистра. «Ё/е» объединены, числа сохранены. Мемы и цитаты могут совпадать естественно.',
+            )}
           >
             <Group align="end" grow>
               <Select
-                label="Минимальная длина"
+                label={t('Минимальная длина')}
                 value={minWords}
                 onChange={(v) => {
                   setMinWords(v ?? '6');
                   setDupPage(1);
                 }}
                 data={[
-                  { value: '0', label: 'Любая длина' },
-                  { value: '6', label: 'От 6 слов' },
-                  { value: '20', label: 'От 20 слов' },
+                  { value: '0', label: t('Любая длина') },
+                  { value: '6', label: t('От 6 слов') },
+                  { value: '20', label: t('От 20 слов') },
                 ]}
               />
               <Select
-                label="Сортировка"
+                label={t('Сортировка')}
                 value={dupSort}
                 onChange={(v) => {
                   setDupSort(v ?? 'count');
                   setDupPage(1);
                 }}
                 data={[
-                  { value: 'count', label: 'Больше повторов' },
-                  { value: 'span', label: 'Ближе по времени' },
-                  { value: 'words', label: 'Длиннее текст' },
+                  { value: 'count', label: t('Больше повторов') },
+                  { value: 'span', label: t('Ближе по времени') },
+                  { value: 'words', label: t('Длиннее текст') },
                 ]}
               />
               <TextInput
-                label="Поиск в совпадениях"
+                label={t('Поиск в совпадениях')}
                 value={dupSearch}
                 onChange={(e) => {
                   setDupSearch(e.currentTarget.value);
@@ -623,8 +645,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               />
             </Group>
             <Text size="xs" c="dimmed" my="md">
-              {groups.length} групп · {groups.reduce((sum, g) => sum + g.rows.length, 0)} отзывов в
-              них
+              {groups.length} {t('групп ·')} {groups.reduce((sum, g) => sum + g.rows.length, 0)}{' '}
+              {t('отзывов в них')}{' '}
             </Text>
             {groups.length ? (
               <Accordion variant="separated">
@@ -632,9 +654,11 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   <Accordion.Item key={g.key} value={g.key}>
                     <Accordion.Control>
                       <Group gap="xs">
-                        <Badge color="gray">{g.rows.length} совпадений</Badge>
+                        <Badge color="gray">
+                          {g.rows.length} {t('совпадений')}
+                        </Badge>
                         <Text size="xs" c="dimmed">
-                          {g.wordCount} слов · разброс {n(g.span / 3600)} ч
+                          {g.wordCount} {t('слов · разброс')} {n(g.span / 3600)} {t('ч')}{' '}
                         </Text>
                       </Group>
                       <Text size="sm" mt={6} lineClamp={1}>
@@ -644,11 +668,11 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                     <Accordion.Panel>
                       <Text size="xs" c="dimmed" mb="sm">
                         {fmt(g.rows[0].timestamp_created)} — {fmt(g.rows.at(-1)!.timestamp_created)}{' '}
-                        UTC · медиана времени при отзыве{' '}
-                        {n(median(g.rows.map((r) => r.author.playtime_at_review)))} мин
+                        {t('UTC · медиана времени при отзыве')}{' '}
+                        {n(median(g.rows.map((r) => r.author.playtime_at_review)))} {t('мин')}{' '}
                       </Text>
                       <details className="full-review">
-                        <summary>Полный текст одного отзыва</summary>
+                        <summary>{t('Полный текст одного отзыва')}</summary>
                         <Text size="sm" className="review-text">
                           {stripMarkup(g.rows[0].review)}
                         </Text>
@@ -657,10 +681,10 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                         <Table>
                           <Table.Thead>
                             <Table.Tr>
-                              <Table.Th>Публикация · UTC</Table.Th>
-                              <Table.Th>Минут в игре</Table.Th>
-                              <Table.Th>Всего отзывов</Table.Th>
-                              <Table.Th>Автор</Table.Th>
+                              <Table.Th>{t('Публикация · UTC')}</Table.Th>
+                              <Table.Th>{t('Минут в игре')}</Table.Th>
+                              <Table.Th>{t('Всего отзывов')}</Table.Th>
+                              <Table.Th>{t('Автор')}</Table.Th>
                             </Table.Tr>
                           </Table.Thead>
                           <Table.Tbody>
@@ -677,7 +701,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                       </Table.ScrollContainer>
                       <Group mt="sm">
                         <Button size="xs" variant="default" onClick={() => focus({ exact: g.key })}>
-                          Открыть эти отзывы
+                          {' '}
+                          {t('Открыть эти отзывы')}{' '}
                         </Button>
                         <Button
                           size="xs"
@@ -689,7 +714,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                             setTab('timeline');
                           }}
                         >
-                          Исследовать время группы
+                          {' '}
+                          {t('Исследовать время группы')}{' '}
                         </Button>
                       </Group>
                     </Accordion.Panel>
@@ -698,11 +724,14 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               </Accordion>
             ) : (
               <Text size="sm" c="dimmed" py="lg">
-                Совпадений по этим условиям нет.
+                {' '}
+                {t('Совпадений по этим условиям нет.')}{' '}
               </Text>
             )}
             {groups.length > 12 && (
               <Pagination
+                getItemProps={pageItemProps}
+                getControlProps={pageControlProps}
                 mt="md"
                 total={Math.ceil(groups.length / 12)}
                 value={Math.min(dupPage, Math.ceil(groups.length / 12))}
@@ -712,7 +741,7 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
             <Checkbox
               size="xs"
               mt="md"
-              label="Показывать публичные ссылки на отзывы Steam"
+              label={t('Показывать публичные ссылки на отзывы Steam')}
               checked={showLinks}
               onChange={(e) => setShowLinks(e.currentTarget.checked)}
             />
@@ -720,11 +749,13 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
         </Tabs.Panel>
         <Tabs.Panel value="authors" pt="lg">
           <Panel
-            title="Сколько отзывов у авторов"
-            description="Всего публичных отзывов сейчас, включая отзыв на эту игру. Единственный отзыв не означает новый аккаунт. Дата регистрации, покупки и число игр через этот endpoint недоступны."
+            title={t('Сколько отзывов у авторов')}
+            description={t(
+              'Всего публичных отзывов сейчас, включая отзыв на эту игру. Единственный отзыв не означает новый аккаунт. Дата регистрации, покупки и число игр через этот endpoint недоступны.',
+            )}
           >
             <Select
-              label="Показывать каждое число отдельно"
+              label={t('Показывать каждое число отдельно')}
               value={authorLimit}
               onChange={(v) => setAuthorLimit(v ?? '20')}
               data={[
@@ -739,9 +770,9 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               <Table stickyHeader highlightOnHover>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Отзывов у автора</Table.Th>
-                    <Table.Th>Авторов</Table.Th>
-                    <Table.Th>Доля известных</Table.Th>
+                    <Table.Th>{t('Отзывов у автора')}</Table.Th>
+                    <Table.Th>{t('Авторов')}</Table.Th>
+                    <Table.Th>{t('Доля известных')}</Table.Th>
                     <Table.Th />
                   </Table.Tr>
                 </Table.Thead>
@@ -767,7 +798,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                           variant="subtle"
                           onClick={() => focus({ author: [b.start, b.end] })}
                         >
-                          Показать
+                          {' '}
+                          {t('Показать')}{' '}
                         </Button>
                       </Table.Td>
                     </Table.Tr>
@@ -776,9 +808,10 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               </Table>
             </Table.ScrollContainer>
             <Text size="xs" c="dimmed" mt="sm">
-              Неизвестно число отзывов или указано 0:{' '}
-              {cohort.filter((r) => !r.author.num_reviews).length}. Отсутствующие значения не
-              считаются нулями в медианах.
+              {' '}
+              {t('Неизвестно число отзывов или указано 0:')}{' '}
+              {cohort.filter((r) => !r.author.num_reviews).length}
+              {t('. Отсутствующие значения не считаются нулями в медианах.')}{' '}
             </Text>
           </Panel>
         </Tabs.Panel>
@@ -787,7 +820,8 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
             <Paper p="md">
               <Group justify="space-between" mb="md">
                 <Title order={3} size="h5">
-                  Отзывы · {n(selected.length)}
+                  {' '}
+                  {t('Отзывы ·')} {n(selected.length)}
                 </Title>
                 <Button
                   variant="default"
@@ -795,12 +829,13 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   leftSection={<IconDownload size={15} />}
                   onClick={exportRows}
                 >
-                  Экспорт JSON
+                  {' '}
+                  {t('Экспорт JSON')}{' '}
                 </Button>
               </Group>
               <Group grow align="end">
                 <TextInput
-                  label="Поиск по тексту"
+                  label={t('Поиск по тексту')}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.currentTarget.value);
@@ -809,17 +844,17 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   leftSection={<IconSearch size={15} />}
                 />
                 <Select
-                  label="Сортировка"
+                  label={t('Сортировка')}
                   value={sort}
                   onChange={(v) => {
                     setSort(v ?? 'new');
                     setPage(1);
                   }}
                   data={[
-                    { value: 'new', label: 'Сначала новые' },
-                    { value: 'time', label: 'Меньше времени в игре' },
-                    { value: 'words', label: 'Короче текст' },
-                    { value: 'author', label: 'Меньше отзывов у автора' },
+                    { value: 'new', label: t('Сначала новые') },
+                    { value: 'time', label: t('Меньше времени в игре') },
+                    { value: 'words', label: t('Короче текст') },
+                    { value: 'author', label: t('Меньше отзывов у автора') },
                   ]}
                 />
               </Group>
@@ -827,14 +862,14 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                 {Object.entries(filters).map(([key, v]) => (
                   <Badge key={key} variant="light" color="gray">
                     {key === 'time'
-                      ? `В игре: ${(v as number[]).map(n).join('–')}`
+                      ? t('В игре: {0}', [(v as number[]).map(n).join('–')])
                       : key === 'length'
-                        ? `Слов: ${(v as number[]).map(n).join('–')}`
+                        ? t('Слов: {0}', [(v as number[]).map(n).join('–')])
                         : key === 'author'
-                          ? `Отзывов у автора: ${(v as number[]).map(n).join('–')}`
+                          ? t('Отзывов у автора: {0}', [(v as number[]).map(n).join('–')])
                           : key === 'term'
                             ? String(v)
-                            : 'Точное совпадение'}
+                            : t('Точное совпадение')}
                   </Badge>
                 ))}
                 {(Object.keys(filters).length > 0 || search) && (
@@ -848,26 +883,30 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                       setPage(1);
                     }}
                   >
-                    Сбросить
+                    {' '}
+                    {t('Сбросить')}{' '}
                   </Button>
                 )}
               </Group>
               <Group mt="md" gap="lg">
                 <Checkbox
                   size="xs"
-                  label="Публичные ссылки Steam"
+                  label={t('Публичные ссылки Steam')}
                   checked={showLinks}
                   onChange={(e) => setShowLinks(e.currentTarget.checked)}
                 />
                 <Checkbox
                   size="xs"
-                  label="Убирать идентификаторы из экспорта"
+                  label={t('Убирать идентификаторы из экспорта')}
                   checked={exportAnonymous}
                   onChange={(e) => setExportAnonymous(e.currentTarget.checked)}
                 />
               </Group>
               <Text size="xs" c="dimmed" mt="xs">
-                Экспорт удаляет Steam ID и ID отзывов, но сам текст может содержать личные сведения.
+                {' '}
+                {t(
+                  'Экспорт удаляет Steam ID и ID отзывов, но сам текст может содержать личные сведения.',
+                )}{' '}
               </Text>
             </Paper>
             {selected
@@ -879,10 +918,10 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                 <Paper key={r.recommendationid} p="md">
                   <Group justify="space-between" gap="xs">
                     <Text size="xs" c="dimmed">
-                      {fmt(r.timestamp_created)} UTC · {r.language}
+                      {fmt(r.timestamp_created)} UTC · {languageName(r.language)}
                     </Text>
                     <Badge variant="light" color={r.voted_up ? 'teal' : 'red'}>
-                      {r.voted_up ? 'Положительный' : 'Отрицательный'}
+                      {r.voted_up ? t('Положительный') : t('Отрицательный')}
                     </Badge>
                   </Group>
                   <Text size="sm" className="review-text" my="md">
@@ -891,13 +930,14 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
                   <Group justify="space-between">
                     <Group gap="xs">
                       <Text size="xs" c="dimmed">
-                        {n(r.author.playtime_at_review)} мин при отзыве
+                        {n(r.author.playtime_at_review)} {t('мин при отзыве')}{' '}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        · {r.tokens.length} слов
+                        · {r.tokens.length} {t('слов')}{' '}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        · всего отзывов: {n(r.author.num_reviews)}
+                        {' '}
+                        {t('· всего отзывов:')} {n(r.author.num_reviews)}
                       </Text>
                     </Group>
                     {source(r)}
@@ -906,11 +946,14 @@ export default function Dashboard({ rows, job }: { rows: Review[]; job: Job }) {
               ))}
             {!selected.length && (
               <Text size="sm" c="dimmed">
-                Нет отзывов по выбранным условиям.
+                {' '}
+                {t('Нет отзывов по выбранным условиям.')}{' '}
               </Text>
             )}
             {selected.length > 20 && (
               <Pagination
+                getItemProps={pageItemProps}
+                getControlProps={pageControlProps}
                 total={Math.ceil(selected.length / 20)}
                 value={Math.min(page, Math.ceil(selected.length / 20))}
                 onChange={setPage}
