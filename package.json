@@ -20,6 +20,7 @@
     "@mantine/core": "9.7.4",
     "@mantine/dates": "9.7.4",
     "@mantine/hooks": "9.7.4",
+    "@siberiacancode/reactuse": "^1.0.17",
     "@tabler/icons-react": "^3.35.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.0",
@@ -30,11 +31,13 @@
     "tsx": "^4.20.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "latest",
+    "happy-dom": "^21.0.4",
     "typescript": "^5.9.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
     "vite-plus": "1.4.0"

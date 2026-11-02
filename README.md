@@ -149,14 +149,19 @@ The underlying commands are `vp lint`, `vp fmt`, `vp check`, `vp test run`, and 
 
 Tool caches under `.vite-plus/` are ignored by Git. No commit hooks or global environment changes are installed.
 
-Tests cover date boundaries, cursor encoding, missing fields, capped downloads, duplicate pages, pause/resume, restart recovery, damaged-tail recovery, HTTP backoff, rolling windows, sentiment separation, exact matches, and identifier-free exports. A 50,000-record download is also exercised against 500 mocked Steam pages; the suite has 29 tests.
+Tests cover date boundaries, cursor encoding, missing fields, capped downloads, duplicate pages, pause/resume, restart recovery, damaged-tail recovery, HTTP backoff, rolling windows, sentiment separation, exact matches, and identifier-free exports. A 50,000-record download is also exercised against 500 mocked Steam pages; the suite has 36 tests.
 
 ```text
 src/
-  App.tsx                    # query form, session history, download progress
+  App.tsx                    # application composition (layout + module wiring)
+  components/app/            # header, query form, history, status, content, dialogs
+  hooks/useReviewQuery.ts    # query draft, validation, and matching-count preview
+  hooks/useReviewSessions.ts # session lifecycle, polling, and stale-response guards
   components/Dashboard.tsx   # analysis views and review explorer
   components/Histogram.tsx   # shared chart
   lib/analysis.ts            # pure analysis functions
+  lib/review-query.ts        # form-to-query conversion
+  lib/session-display.ts     # status labels and download progress
 server/
   index.ts                   # local HTTP API and Vite/static serving
   steam.ts                   # Steam contract, request queue, retry policy
@@ -167,6 +172,8 @@ shared/
   query.ts                   # input validation and UTC range conversion
 tests/                       # synthetic fixtures and automated tests
 ```
+
+Session polling uses `useInterval` from [ReactUse](https://github.com/siberiacancode/reactuse). The form and session hooks own their respective state; visual components receive data and actions. Regression tests exercise switching sessions, late responses, non-overlapping polling, and preview invalidation without contacting Steam.
 
 ### Local API
 

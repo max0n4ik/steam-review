@@ -147,7 +147,10 @@ Las pruebas cubren fechas, cursores, datos ausentes, paginación, pausa y reanud
 ### Estructura
 
 ```text
-src/App.tsx                    # formulario, historial y progreso
+src/App.tsx                    # composición de la aplicación y conexión de módulos
+src/components/app/            # formulario, historial, progreso y diálogos
+src/hooks/useReviewQuery.ts    # parámetros y consulta previa
+src/hooks/useReviewSessions.ts # sesiones, sondeo y protección frente a respuestas antiguas
 src/components/Dashboard.tsx   # vistas de análisis
 src/components/Histogram.tsx   # gráfico compartido
 src/lib/analysis.ts            # funciones puras de análisis
@@ -159,6 +162,8 @@ server/storage.ts              # JSONL y recuperación
 shared/                        # tipos, validación y traducciones
 tests/                         # datos sintéticos y pruebas
 ```
+
+El sondeo usa `useInterval` de [ReactUse](https://github.com/siberiacancode/reactuse). Los hooks de formulario y sesiones gestionan el estado; los componentes reciben datos y acciones. Las pruebas cubren el cambio de sesión, respuestas tardías, sondeos sin superposición y la validez de la consulta previa.
 
 API local: `POST /api/preview`, `GET/POST /api/jobs`, `GET/DELETE /api/jobs/:id`, `GET /api/jobs/:id/reviews`, `POST /api/jobs/:id/pause` y `POST /api/jobs/:id/resume`. Parámetros: `{ "appid": 440, "limit": 1000, "start": null, "end": null }`; las fechas se indican en segundos Unix UTC y `end` es exclusivo.
 

@@ -1,6 +1,6 @@
 import { test } from 'vite-plus/test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import ts from 'typescript';
 import {
   chooseLanguage,
@@ -21,15 +21,23 @@ test('language detection respects a saved choice and regional browser variants',
 });
 
 test('every source interface phrase and known server message has both translations', () => {
+  function sourceFiles(directory: string): string[] {
+    return readdirSync(new URL('../' + directory, import.meta.url), {
+      withFileTypes: true,
+    }).flatMap((entry) => {
+      const file = directory + '/' + entry.name;
+      return entry.isDirectory()
+        ? sourceFiles(file)
+        : /\.tsx?$/.test(file) && file !== 'src/lib/analysis.ts'
+          ? [file]
+          : [];
+    });
+  }
   for (const file of [
-    'src/App.tsx',
-    'src/components/Dashboard.tsx',
-    'src/components/Histogram.tsx',
-    'src/i18n.tsx',
+    ...sourceFiles('src'),
     'server/jobs.ts',
     'server/steam.ts',
     'shared/query.ts',
-    'src/lib/api.ts',
   ]) {
     const source = ts.createSourceFile(
       file,

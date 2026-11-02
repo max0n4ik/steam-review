@@ -147,7 +147,10 @@ Vite+ закреплён по версии; сервер использует с
 ### Структура
 
 ```text
-src/App.tsx                    # форма, история и прогресс
+src/App.tsx                    # компоновка приложения и связь модулей
+src/components/app/            # форма, история, прогресс, диалоги и оформление
+src/hooks/useReviewQuery.ts    # параметры запроса и предварительный подсчёт
+src/hooks/useReviewSessions.ts # сессии, опрос прогресса и защита от старых ответов
 src/components/Dashboard.tsx   # разделы анализа
 src/components/Histogram.tsx   # общая диаграмма
 src/lib/analysis.ts            # чистые функции анализа
@@ -159,6 +162,8 @@ server/storage.ts              # JSONL и восстановление
 shared/                        # типы, валидация и переводы
 tests/                         # синтетические данные и тесты
 ```
+
+Для опроса прогресса используется `useInterval` из [ReactUse](https://github.com/siberiacancode/reactuse). Состояние формы и сессий вынесено в отдельные хуки, а компоненты получают данные и действия. Проверяются переключение сессий, запоздалые ответы, отсутствие параллельных опросов и актуальность предварительного подсчёта.
 
 Локальный API: `POST /api/preview`, `GET/POST /api/jobs`, `GET/DELETE /api/jobs/:id`, `GET /api/jobs/:id/reviews`, `POST /api/jobs/:id/pause` и `POST /api/jobs/:id/resume`. Параметры: `{ "appid": 440, "limit": 1000, "start": null, "end": null }`; даты — Unix-секунды UTC с исключённым `end`.
 
