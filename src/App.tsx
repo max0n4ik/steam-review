@@ -197,14 +197,8 @@ export default function App() {
           <Title order={1} size="h4">
             Steam Review Lab
           </Title>
-          <Badge color="gray" variant="light">
-            LOCAL
-          </Badge>
         </Group>
         <Group gap="md">
-          <Text size="xs" c="dimmed">
-            {t('Отзывы, время и повторяющиеся тексты')}
-          </Text>
           <NativeSelect
             aria-label={t('Язык интерфейса')}
             value={language}
@@ -225,16 +219,6 @@ export default function App() {
       <div className="workspace">
         <aside className="sidebar">
           <Stack gap="lg">
-            <div>
-              <Text fw={600} size="sm">
-                {' '}
-                {t('Новая выборка')}{' '}
-              </Text>
-              <Text size="xs" c="dimmed" mt={4}>
-                {' '}
-                {t('Выберите игру и объём до загрузки.')}{' '}
-              </Text>
-            </div>
             <TextInput
               label={t('App ID или ссылка на игру')}
               placeholder={t('Например, 440')}
@@ -389,12 +373,6 @@ export default function App() {
               {' '}
               {t('Загрузить отзывы')}{' '}
             </Button>
-            <Text size="xs" c="dimmed">
-              {' '}
-              {t(
-                'Все языки, обе оценки и off-topic отзывы. Разделить выборку можно после загрузки. API-ключ не обязателен.',
-              )}{' '}
-            </Text>
             <Divider />
             <Group justify="space-between">
               <Text size="xs" fw={600} tt="uppercase" c="dimmed">
@@ -594,10 +572,7 @@ export default function App() {
                 target="_blank"
               >
                 Steam GetAppReviews API
-              </Anchor>{' '}
-              {t(
-                '. Признаки в данных помогают исследовать гипотезы и не являются доказательством накрутки.',
-              )}{' '}
+              </Anchor>
             </Text>
             <Text size="xs" c="dimmed">
               <Anchor
